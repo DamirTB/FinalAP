@@ -7,7 +7,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/shynggys9219/greenlight/internal/validator"
+	"damir/internal/validator"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,14 +24,16 @@ var (
 // any output when we encode it to JSON. Also notice that the Password field uses the
 // custom password type defined below.
 type User struct {
-	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	Updatedat time.Time `json:"updated_at"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Password  password  `json:"-"`
-	Activated bool      `json:"activated"`
-	Version   int       `json:"-"`
+	ID        	int64     	`json:"id"`
+	CreatedAt 	time.Time 	`json:"created_at"`
+	Updatedat 	time.Time 	`json:"updated_at"`
+	Name      	string    	`json:"name"`
+	Surname   	string    	`json:"surname"`
+	Email     	string    	`json:"email"`
+	Password  	password  	`json:"-"`
+	Activated 	bool      	`json:"activated"`
+	Version   	int       	`json:"-"`
+	Role 		string		`json:"role"`
 }
 
 // Create a UserModel struct which wraps the connection pool.
@@ -50,6 +53,12 @@ type password struct {
 func (u *User) IsAnonymous() bool {
 	return u == AnonymousUser
 }
+
+func (p *password) SetFromHash(hash []byte) error {
+    p.hash = hash
+    return nil
+}
+
 
 // The Set() method calculates the bcrypt hash of a plaintext password, and stores both
 // the hash and the plaintext versions in the struct.
@@ -114,10 +123,10 @@ func ValidateUser(v *validator.Validator, user *User) {
 // that we did when creating a movie.
 func (m UserModel) Insert(user *User) error {
 	query := `
-	INSERT INTO users (name, email, password_hash, activated)
-	VALUES ($1, $2, $3, $4)
+	INSERT INTO user_info (fname, sname, email, password_hash, activated)
+	VALUES ($1, $2, $3, $4, $5)
 	RETURNING id, created_at, version`
-	args := []any{user.Name, user.Email, user.Password.hash, user.Activated}
+	args := []any{user.Name, user.Surname, user.Email, user.Password.hash, user.Activated}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	// If the table already contains a record with this email address, then when we try
@@ -141,8 +150,8 @@ func (m UserModel) Insert(user *User) error {
 // return one record (or none at all, in which case we return a ErrRecordNotFound error).
 func (m UserModel) GetByEmail(email string) (*User, error) {
 	query := `
-	SELECT id, created_at, name, email, password_hash, activated, version
-	FROM users
+	SELECT id, created_at, fname, email, password_hash, activated, version
+	FROM user_info
 	WHERE email = $1`
 	var user User
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -174,8 +183,8 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 // record originally.
 func (m UserModel) Update(user *User) error {
 	query := `
-	UPDATE users
-	SET name = $1, email = $2, password_hash = $3, activated = $4, version = version + 1
+	UPDATE user_info
+	SET fname = $1, email = $2, password_hash = $3, activated = $4, version = version + 1
 	WHERE id = $5 AND version = $6
 	RETURNING version`
 	args := []any{
@@ -209,10 +218,10 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
 	// Set up the SQL query.
 	query := `
-	SELECT users.id, users.created_at, users.name, users.email, users.password_hash, users.activated, users.version
-	FROM users
+	SELECT user_info.id, user_info.created_at, user_info.fname, user_info.sname, user_info.email, user_info.password_hash, user_info.user_role, user_info.activated, user_info.version
+	FROM user_info
 	INNER JOIN tokens
-	ON users.id = tokens.user_id
+	ON user_info.id = tokens.user_id
 	WHERE tokens.hash = $1
 	AND tokens.scope = $2
 	AND tokens.expiry > $3`
@@ -230,8 +239,10 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 		&user.ID,
 		&user.CreatedAt,
 		&user.Name,
+		&user.Surname,
 		&user.Email,
 		&user.Password.hash,
+		&user.Role,
 		&user.Activated,
 		&user.Version,
 	)
@@ -246,3 +257,100 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 	// Return the matching user.
 	return &user, nil
 }
+
+func (m UserModel) Delete(id int64) error {
+	query := `
+		DELETE FROM user_info
+		where id = $1
+	`
+	result, err := m.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
+}
+
+func (m UserModel) Get(id int64) (*User, error) {
+	query := `
+		SELECT *
+		FROM user_info
+		WHERE id = $1`
+
+	var user User
+	var passwordHash []byte
+	err := m.DB.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Updatedat,
+		&user.Name,
+		&user.Surname,
+		&user.Email,
+		&passwordHash,
+		&user.Role,
+		&user.Activated, 
+		&user.Version,
+	)
+	err = user.Password.SetFromHash(passwordHash)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
+
+}
+
+
+func (m UserModel) GetAll() ([]*User, error) {
+	query := `
+		SELECT *
+		FROM user_info`
+
+	rows, err := m.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*User
+
+	for rows.Next() {
+		var user User
+		var passwordHash []byte
+		err := rows.Scan(
+			&user.ID,
+			&user.CreatedAt,
+			&user.Updatedat,
+			&user.Name,
+			&user.Surname,
+			&user.Email,
+			&passwordHash,
+			&user.Role,
+			&user.Activated, 
+			&user.Version,
+		)
+		err = user.Password.SetFromHash(passwordHash)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+

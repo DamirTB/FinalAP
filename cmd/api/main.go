@@ -10,10 +10,11 @@ import (
 
 	// undescore (alias) is used to avoid go compiler complaining or erasing this
 	// library.
+	"damir/internal/data"
+	"damir/internal/jsonlog"
+	"damir/internal/mailer"
+
 	_ "github.com/lib/pq"
-	"github.com/shynggys9219/greenlight/internal/data"
-	"github.com/shynggys9219/greenlight/internal/jsonlog"
-	"github.com/shynggys9219/greenlight/internal/mailer"
 )
 
 const version = "1.0.0"
@@ -84,14 +85,14 @@ func main() {
 	// Mailtrap settings as the default values. IMPORTANT: If you're following along,
 	// make sure to replace the default values for smtp-username and smtp-password
 	// with your own Mailtrap credentials.
-	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.office365.com", "SMTP host")
 	flag.IntVar(&cfg.smtp.port, "smtp-port", 587, "SMTP port")
 	// use your own credentials here as username and password
 	// $env:SMTPUSERNAME="smtp_server_username_here"
 	// $env:SMTPPASSWORD="smtp_server_username_here"
-	flag.StringVar(&cfg.smtp.username, "smtp-username", "daranparampam@gmail.com", "SMTP username")
-	flag.StringVar(&cfg.smtp.password, "smtp-password", "scez sizm xpun wzot", "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Test <no-reply@test.com>", "SMTP sender")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("email"), "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("password"), "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Test <221363@astanait.edu.kz>", "SMTP sender")
 
 	flag.Parse()
 	// Using new json oriented logger

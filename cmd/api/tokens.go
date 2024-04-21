@@ -1,18 +1,18 @@
 package main
 
 import (
+	"damir/internal/data"
+	"damir/internal/validator"
 	"errors"
 	"net/http"
 	"time"
-	"github.com/shynggys9219/greenlight/internal/data"
-	"github.com/shynggys9219/greenlight/internal/validator"
 )
 
 func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the email and password from the request body.
 	var input struct {
-		Email string 		`json:"email"`
-		Password string 	`json:"password"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -55,3 +55,4 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		app.serverErrorResponse(w, r, err)
 	}
 }
+

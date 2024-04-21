@@ -8,13 +8,13 @@ import (
 	"encoding/base32"
 	"time"
 
-	"github.com/shynggys9219/greenlight/internal/validator"
+	"damir/internal/validator"
 )
 
 // Define constants for the token scope. For now we just define the scope "activation"
 // but we'll add additional scopes later in the book.
 const (
-	ScopeActivation = "activation"
+	ScopeActivation     = "activation"
 	ScopeAuthentication = "authentication"
 )
 

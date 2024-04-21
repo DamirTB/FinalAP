@@ -1,4 +1,4 @@
-module github.com/shynggys9219/greenlight
+module damir
 
 go 1.19
 

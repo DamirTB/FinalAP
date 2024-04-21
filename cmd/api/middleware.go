@@ -1,15 +1,17 @@
 package main
 
 import (
+	"damir/internal/data"      // New import
+	"damir/internal/validator" // New import
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
-	"errors" 
-	"strings" 
-	"github.com/shynggys9219/greenlight/internal/data" // New import
-	"github.com/shynggys9219/greenlight/internal/validator" // New import
+	_"database/sql"
+	_"log"
 	"golang.org/x/time/rate"
 )
 
@@ -100,76 +102,100 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// Add the "Vary: Authorization" header to the response. This indicates to any
-	// caches that the response may vary based on the value of the Authorization
-	// header in the request.
-	w.Header().Add("Vary", "Authorization")
-	// Retrieve the value of the Authorization header from the request. This will
-	// return the empty string "" if there is no such header found.
-	authorizationHeader := r.Header.Get("Authorization")
-	// If there is no Authorization header found, use the contextSetUser() helper
-	// that we just made to add the AnonymousUser to the request context. Then we
-	// call the next handler in the chain and return without executing any of the
-	// code below.
-	if authorizationHeader == "" {
-	r = app.contextSetUser(r, data.AnonymousUser)
-	next.ServeHTTP(w, r)
-	return
-	}
-	headerParts := strings.Split(authorizationHeader, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		app.invalidAuthenticationTokenResponse(w, r)
-		return
-	}
-	token := headerParts[1]
-	// Validate the token to make sure it is in a sensible format.
-	v := validator.New()
-	// If the token isn't valid, use the invalidAuthenticationTokenResponse()
-	// helper to send a response, rather than the failedValidationResponse() helper
-	// that we'd normally use.
-	if data.ValidateTokenPlaintext(v, token); !v.Valid() {
-		app.invalidAuthenticationTokenResponse(w, r)
-		return
-	}
-	user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.invalidAuthenticationTokenResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
+		// Add the "Vary: Authorization" header to the response. This indicates to any
+		// caches that the response may vary based on the value of the Authorization
+		// header in the request.
+		w.Header().Add("Vary", "Authorization")
+		// Retrieve the value of the Authorization header from the request. This will
+		// return the empty string "" if there is no such header found.
+		authorizationHeader := r.Header.Get("Authorization")
+		// If there is no Authorization header found, use the contextSetUser() helper
+		// that we just made to add the AnonymousUser to the request context. Then we
+		// call the next handler in the chain and return without executing any of the
+		// code below.
+		if authorizationHeader == "" {
+			r = app.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
 		}
-		return
-	}
-	r = app.contextSetUser(r, user)
-	// Call the next handler in the chain.
-	next.ServeHTTP(w, r)
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+		token := headerParts[1]
+		// Validate the token to make sure it is in a sensible format.
+		v := validator.New()
+		// If the token isn't valid, use the invalidAuthenticationTokenResponse()
+		// helper to send a response, rather than the failedValidationResponse() helper
+		// that we'd normally use.
+		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.invalidAuthenticationTokenResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+		r = app.contextSetUser(r, user)
+		// Call the next handler in the chain.
+		next.ServeHTTP(w, r)
 	})
 }
 
 func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	user := app.contextGetUser(r)
-	if user.IsAnonymous() {
-	app.authenticationRequiredResponse(w, r)
-	return
-	}
-	next.ServeHTTP(w, r)
+		user := app.contextGetUser(r)
+		if user.IsAnonymous() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
-
 
 func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
 	// Rather than returning this http.HandlerFunc we assign it to the variable fn.
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	user := app.contextGetUser(r)
-	// Check that a user is activated.
-	if !user.Activated {
-	app.inactiveAccountResponse(w, r)
-	return
-	}
-	next.ServeHTTP(w, r)
+		user := app.contextGetUser(r)
+		// Check that a user is activated.
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 	// Wrap fn with the requireAuthenticatedUser() middleware before returning it.
 	return app.requireAuthenticatedUser(fn)
 }
+
+func (app *application) requireAdminUser(next http.HandlerFunc) http.HandlerFunc {
+    fn := app.requireAuthenticatedUser(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        user := app.contextGetUser(r)
+		// fmt.Printf("the user name is %s\n", user.Name)
+		// fmt.Printf("the user surname is %s\n", user.Surname)
+		// fmt.Printf("the user email is %s\n", user.Email)
+		// fmt.Printf("the user role is %s\n", user.Role)
+		// fmt.Printf("the user updated_at is %s\n", user.Updatedat)
+        if user.Role != "admin" {
+            app.accessDeniedResponse(w, r)
+            return
+        }
+        next.ServeHTTP(w, r)
+    }))
+    
+    // Convert fn to http.HandlerFunc
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Call the authenticated middleware
+        app.authenticate(fn).ServeHTTP(w, r)
+    })
+}
+
+
+

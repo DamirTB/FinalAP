@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/shynggys9219/greenlight/internal/data"
+	"damir/internal/data"
 )
 
 // Add a createMovieHandler for the "POST /v1/movies" endpoint.
