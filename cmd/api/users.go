@@ -203,8 +203,64 @@ func (app *application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+// 	users, err := app.models.Users.GetAll()
+// 	if err != nil {
+// 		switch {
+// 		case errors.Is(err, data.ErrRecordNotFound):
+// 			app.notFoundResponse(w, r)
+// 		default:
+// 			app.serverErrorResponse(w, r, err)
+// 		}
+// 		return
+// 	}
+// 	err = app.writeJSON(w, http.StatusOK, envelope{"users": users}, nil)
+// 	if err != nil {
+// 		app.serverErrorResponse(w, r, err)
+// 	}
+// }
+
 func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	users, err := app.models.Users.GetAll()
+	var input struct {
+		Name string
+		data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Name = app.readString(qs, "name", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	users, err := app.models.Users.GetAll(input.Name, input.Filters)
+	//users, err := app.models.Users.GetAll(input.Name, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"users": users}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	fmt.Fprintf(w, "%+v\n", input)
+}
+
+
+// func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
+
+// } 
+
+func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user, err := app.models.Users.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -214,7 +270,47 @@ func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"users": users}, nil)
+	var input struct {
+		Name 		*string 			`json:"name"`
+		Surname 	*string 			`json:"surname"`
+		Email 		*string 			`json:"email"`
+		Activated	*bool				`json:"activated"`
+	}
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if input.Name != nil{
+		user.Name = *input.Name
+	}
+	if input.Surname != nil {
+		user.Surname = *input.Surname
+	}
+	if input.Email != nil {
+		user.Email = *input.Email
+	}
+	if input.Activated != nil{
+		user.Activated = *input.Activated
+	}
+
+
+	v := validator.New()
+	if data.ValidateUser(v, user); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	err = app.models.Users.Update(user)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+		app.editConflictResponse(w, r)
+		default:
+		app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

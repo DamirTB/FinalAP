@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"time"
-
+	"fmt"
 	"damir/internal/validator"
 
 	"golang.org/x/crypto/bcrypt"
@@ -176,24 +176,18 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// Update the details for a specific user. Notice that we check against the version
-// field to help prevent any race conditions during the request cycle, just like we did
-// when updating a movie. And we also check for a violation of the "users_email_key"
-// constraint when performing the update, just like we did when inserting the user
-// record originally.
 func (m UserModel) Update(user *User) error {
 	query := `
 	UPDATE user_info
-	SET fname = $1, email = $2, password_hash = $3, activated = $4, version = version + 1
-	WHERE id = $5 AND version = $6
+	SET fname = $1, sname=$2, email = $3, activated = $4, version = version + 1
+	WHERE id = $5 
 	RETURNING version`
 	args := []any{
 		user.Name,
+		user.Surname,
 		user.Email,
-		user.Password.hash,
 		user.Activated,
 		user.ID,
-		user.Version,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -312,12 +306,20 @@ func (m UserModel) Get(id int64) (*User, error) {
 }
 
 
-func (m UserModel) GetAll() ([]*User, error) {
-	query := `
-		SELECT *
-		FROM user_info`
-
-	rows, err := m.DB.Query(query)
+func (m UserModel) GetAll(name string, filters Filters) ([]*User, error) {
+	query := fmt.Sprintf(`
+	SELECT *
+	FROM user_info
+	WHERE (to_tsvector('simple', fname) @@ plainto_tsquery('simple', $1) OR $1 = '')
+	ORDER BY %s %s, id ASC
+	LIMIT $2 OFFSET $3`, filters.sortColumn(), filters.sortDirection())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	args := []any{name, filters.limit(), filters.offset()}
+	// query := `
+	// 	SELECT *
+	// 	FROM user_info`
+	rows, err := m.DB.QueryContext(ctx, query, args...)	
 	if err != nil {
 		return nil, err
 	}
