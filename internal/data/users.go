@@ -3,11 +3,12 @@ package data
 import (
 	"context"
 	"crypto/sha256"
+	"damir/internal/filters"
+	"damir/internal/validator"
 	"database/sql"
 	"errors"
-	"time"
 	"fmt"
-	"damir/internal/validator"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -306,16 +307,16 @@ func (m UserModel) Get(id int64) (*User, error) {
 }
 
 
-func (m UserModel) GetAll(name string, filters Filters) ([]*User, error) {
+func (m UserModel) GetAll(name string, filters filters.Filters) ([]*User, error) {
 	query := fmt.Sprintf(`
 	SELECT *
 	FROM user_info
 	WHERE (to_tsvector('simple', fname) @@ plainto_tsquery('simple', $1) OR $1 = '')
 	ORDER BY %s %s, id ASC
-	LIMIT $2 OFFSET $3`, filters.sortColumn(), filters.sortDirection())
+	LIMIT $2 OFFSET $3`, filters.SortColumn(), filters.SortDirection())
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	args := []any{name, filters.limit(), filters.offset()}
+	args := []any{name, filters.Limit(), filters.Offset()}
 	// query := `
 	// 	SELECT *
 	// 	FROM user_info`

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"damir/internal/data"
 	"damir/internal/validator"
+	"damir/internal/filters"
 )
 
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +224,7 @@ func (app *application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name string
-		data.Filters
+		filters.Filters
 	}
 	v := validator.New()
 	qs := r.URL.Query()
@@ -232,7 +233,7 @@ func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 	input.Filters.Sort = app.readString(qs, "sort", "id")
 	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
-	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+	if filters.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}

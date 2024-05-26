@@ -73,7 +73,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only carry out the check if rate limiting is enabled.
-		if app.config.limiter.enabled {
+		if app.config.Limiter.Enabled {
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)
 			if err != nil {
 				app.serverErrorResponse(w, r, err)
@@ -84,7 +84,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 				clients[ip] = &client{
 					// Use the requests-per-second and burst values from the config
 					// struct.
-					limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
+					limiter: rate.NewLimiter(rate.Limit(app.config.Limiter.Rps), app.config.Limiter.Burst),
 				}
 			}
 			clients[ip].lastSeen = time.Now()
