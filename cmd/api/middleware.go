@@ -1,17 +1,19 @@
 package main
 
 import (
-	"damir/internal/data"      // New import
+	"damir/internal/data" // New import
+	"damir/internal/entity"
 	"damir/internal/validator" // New import
+	_ "database/sql"
 	"errors"
 	"fmt"
+	_ "log"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
-	_"database/sql"
-	_"log"
+
 	"golang.org/x/time/rate"
 )
 
@@ -114,7 +116,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		// call the next handler in the chain and return without executing any of the
 		// code below.
 		if authorizationHeader == "" {
-			r = app.contextSetUser(r, data.AnonymousUser)
+			r = app.contextSetUser(r, entity.AnonymousUser)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -129,11 +131,11 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		// If the token isn't valid, use the invalidAuthenticationTokenResponse()
 		// helper to send a response, rather than the failedValidationResponse() helper
 		// that we'd normally use.
-		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
+		if entity.ValidateTokenPlaintext(v, token); !v.Valid() {
 			app.invalidAuthenticationTokenResponse(w, r)
 			return
 		}
-		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
+		user, err := app.models.Users.GetForToken(entity.ScopeAuthentication, token)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound):

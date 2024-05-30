@@ -3,6 +3,7 @@ package usecase
 import (
 	"damir/internal/entity"
     "damir/internal/filters"
+	"time"
 )
 
 type MovieRepository interface {
@@ -20,4 +21,10 @@ type UserRepository interface {
 	Update(user *entity.User) error
 	Delete(id int64) error
 	GetAll(name string, filters filters.Filters) ([]*entity.User, error)
+}
+
+type TokenRepository interface{
+	Insert(token *entity.Token) error
+	New(userID int64, ttl time.Duration, scope string) (*entity.Token, error)
+	DeleteAllForUser(scope string, userID int64) error
 }

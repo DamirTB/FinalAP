@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 	"fmt"
-	"damir/internal/data"
+	"damir/internal/entity"
 	"damir/internal/validator"
 	"damir/internal/filters"
 )
@@ -28,7 +28,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	// set the Activated field to false, which isn't strictly necessary because the
 	// Activated field will have the zero-value of false by default. But setting this
 	// explicitly helps to make our intentions clear to anyone reading the code.
-	user := &data.User{
+	user := &entity.User{
 		Name:      	input.Name,
 		Email:     	input.Email,
 		Surname: 	input.Surname,
@@ -44,7 +44,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	v := validator.New()
 	// Validate the user struct and return the error messages to the client if any of
 	// the checks fail.
-	if data.ValidateUser(v, user); !v.Valid() {
+	if entity.ValidateUser(v, user); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
@@ -55,7 +55,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		// If we get a ErrDuplicateEmail error, use the v.AddError() method to manually
 		// add a message to the validator instance, and then call our
 		// failedValidationResponse() helper.
-		case errors.Is(err, data.ErrDuplicateEmail):
+		case errors.Is(err, entity.ErrDuplicateEmail):
 			v.AddError("email", "a user with this email address already exists")
 			app.failedValidationResponse(w, r, v.Errors)
 		default:
@@ -65,7 +65,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// token generation to activate account
-	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, entity.ScopeActivation)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -113,17 +113,17 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 	// Validate the plaintext token provided by the client.
 	v := validator.New()
-	if data.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
+	if entity.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 	// Retrieve the details of the user associated with the token using the
 	// GetForToken() method (which we will create in a minute). If no matching record
 	// is found, then we let the client know that the token they provided is not valid.
-	user, err := app.models.Users.GetForToken(data.ScopeActivation, input.TokenPlaintext)
+	user, err := app.models.Users.GetForToken(entity.ScopeActivation, input.TokenPlaintext)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
+		case errors.Is(err, entity.ErrRecordNotFound):
 			v.AddError("token", "invalid or expired activation token")
 			app.failedValidationResponse(w, r, v.Errors)
 		default:
@@ -138,7 +138,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	err = app.models.Users.Update(user)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrEditConflict):
+		case errors.Is(err, entity.ErrEditConflict):
 			app.editConflictResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
@@ -147,7 +147,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 	// If everything went successfully, then we delete all activation tokens for the
 	// user.
-	err = app.models.Tokens.DeleteAllForUser(data.ScopeActivation, user.ID)
+	err = app.models.Tokens.DeleteAllForUser(entity.ScopeActivation, user.ID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -169,7 +169,7 @@ func(app *application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Requ
 	err = app.models.Users.Delete(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
+		case errors.Is(err, entity.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
@@ -191,7 +191,7 @@ func (app *application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 	user, err := app.models.Users.Get(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
+		case errors.Is(err, entity.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
@@ -264,7 +264,7 @@ func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Reque
 	user, err := app.models.Users.Get(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
+		case errors.Is(err, entity.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
@@ -297,14 +297,14 @@ func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Reque
 
 
 	v := validator.New()
-	if data.ValidateUser(v, user); !v.Valid() {
+	if entity.ValidateUser(v, user); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 	err = app.models.Users.Update(user)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrEditConflict):
+		case errors.Is(err, entity.ErrEditConflict):
 		app.editConflictResponse(w, r)
 		default:
 		app.serverErrorResponse(w, r, err)

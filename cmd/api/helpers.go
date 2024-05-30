@@ -10,7 +10,7 @@ import (
 	"net/url" 
 	"github.com/julienschmidt/httprouter"
 	"damir/internal/validator" 
-	"strings"
+	_"strings"
 )
 
 // again, in the book you have "any" type, but if you use go 1.17 and lower
@@ -109,15 +109,6 @@ func (app *application) readString(qs url.Values, key string, defaultValue strin
 		return defaultValue
 	}
 	return s
-}
-
-func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
-	// Extract the value from the query string.
-	csv := qs.Get(key)
-	if csv == "" {
-		return defaultValue
-	}
-	return strings.Split(csv, ",")
 }
 
 func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
