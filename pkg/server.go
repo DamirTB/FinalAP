@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-func (app *application) serve() error {
+func (app *Applicaiton) Serve() error {
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", app.config.Port),
+		Addr:         fmt.Sprintf(":%d", app.Config.Port),
 		Handler:      app.routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
@@ -24,7 +24,7 @@ func (app *application) serve() error {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 		s := <-quit
-		app.logger.PrintInfo("caught signal", map[string]string{
+		app.Logger.PrintInfo("caught signal", map[string]string{
 			"signal": s.String(),
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -34,17 +34,17 @@ func (app *application) serve() error {
 			shutdownError <- srv.Shutdown(ctx)
 		}
 
-		app.logger.PrintInfo("completing background tasks", map[string]string{
+		app.Logger.PrintInfo("completing background tasks", map[string]string{
 			"addr": srv.Addr,
 		})
 
-		app.wg.Wait()
+		app.Wg.Wait()
 		shutdownError <- nil
 	}()
 
-	app.logger.PrintInfo("starting server", map[string]string{
+	app.Logger.PrintInfo("starting server", map[string]string{
 		"addr": srv.Addr,
-		"env":  app.config.Env,
+		"env":  app.Config.Env,
 	})
 	// Calling Shutdown() on our server will cause ListenAndServe() to immediately
 	// return a http.ErrServerClosed error. So if we see this error, it is actually a
@@ -63,7 +63,7 @@ func (app *application) serve() error {
 	}
 	// At this point we know that the graceful shutdown completed successfully and we
 	// log a "stopped server" message.
-	app.logger.PrintInfo("stopped server", map[string]string{
+	app.Logger.PrintInfo("stopped server", map[string]string{
 		"addr": srv.Addr,
 	})
 	return nil

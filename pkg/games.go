@@ -1,18 +1,17 @@
-package main
+package pkg
 
 import (
 	"damir/internal/entity"
 	"errors"
-	"fmt"
+	_"fmt"
 	"net/http"
 )
 
-
-func (app *application) createGameHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) createGameHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name   		string   `json:"name"`
-		Price    	int32    `json:"price"`
-		Genres  	[]string `json:"genres"`
+		Name   string   `json:"name"`
+		Price  int32    `json:"price"`
+		Genres []string `json:"genres"`
 	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -20,12 +19,12 @@ func (app *application) createGameHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	game := &entity.Game{
-		Name:   	input.Name,
-		Price:    	input.Price,
-		Genres:  	input.Genres,
+		Name:   input.Name,
+		Price:  input.Price,
+		Genres: input.Genres,
 	}
 
-	err = app.models.Games.Insert(game)
+	err = app.Models.Games.Insert(game)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -38,13 +37,13 @@ func (app *application) createGameHandler(w http.ResponseWriter, r *http.Request
 	// fmt.Fprintf(w, "%+v\n", input) //+v here is adding the field name of a value // https://pkg.go.dev/fmt
 }
 
-func (app *application) showGameHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) showGameHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 	}
 
-	game, err := app.models.Games.Get(id)
+	game, err := app.Models.Games.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -60,13 +59,13 @@ func (app *application) showGameHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (app *application) deleteGameHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) deleteGameHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
-	err = app.models.Games.Delete(id)
+	err = app.Models.Games.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -76,20 +75,13 @@ func (app *application) deleteGameHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	statusCode := http.StatusOK 
-	app.logger.PrintInfo("Game successfully deleted", map[string]string{
-		"request_method": r.Method,
-		"request_url":    r.URL.String(),
-		"status_code":    fmt.Sprintf("%d", statusCode), 
-	})
 	err = app.writeJSON(w, http.StatusOK, envelope{"message": "game successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
-
-// func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+// func (app *Applicaiton) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 // 	id, err := app.readIDParam(r)
 // 	if err != nil {
 // 		app.notFoundResponse(w, r)

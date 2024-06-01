@@ -1,25 +1,25 @@
-package config
+package pkg
 
 import (
 	"damir/internal/data"
-	"damir/internal/mailer"
-	"sync"
 	"damir/internal/jsonlog"
+	"damir/internal/mailer"
 	"flag"
 	"os"
+	"sync"
 )
 
-type application struct {
-	config Config
-	logger *jsonlog.Logger
-	models data.Models
-	mailer mailer.Mailer
-	wg     sync.WaitGroup
+type Applicaiton struct {
+	Config Config
+	Logger *jsonlog.Logger
+	Models data.Models
+	Mailer mailer.Mailer
+	Wg     sync.WaitGroup
 }
 
 const version = "1.0.0"
 
-func Setup() Config{
+func Setup() Config {
 	var cfg Config
 
 	flag.IntVar(&cfg.Port, "port", 4000, "API server port")
@@ -42,4 +42,11 @@ func Setup() Config{
 	flag.StringVar(&cfg.Smtp.Sender, "smtp-sender", "Test <221363@astanait.edu.kz>", "SMTP sender")
 	flag.Parse()
 	return cfg
+}
+
+func run() error{
+
+
+
+	return nil
 }

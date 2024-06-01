@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"damir/internal/entity"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) createAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -25,7 +25,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	user, err := app.models.Users.GetByEmail(input.Email)
+	user, err := app.Models.Users.GetByEmail(input.Email)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -44,7 +44,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		app.invalidCredentialsResponse(w, r)
 		return
 	}
-	token, err := app.models.Tokens.New(user.ID, 24*time.Hour, entity.ScopeAuthentication)
+	token, err := app.Models.Tokens.New(user.ID, 24*time.Hour, entity.ScopeAuthentication)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -54,4 +54,3 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		app.serverErrorResponse(w, r, err)
 	}
 }
-

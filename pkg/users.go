@@ -1,22 +1,22 @@
-package main
+package pkg
 
 import (
+	"damir/internal/entity"
+	"damir/internal/filters"
+	"damir/internal/validator"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
-	"fmt"
-	"damir/internal/entity"
-	"damir/internal/validator"
-	"damir/internal/filters"
 )
 
-func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Create an anonymous struct to hold the expected data from the request body.
 	var input struct {
-		Name     	string 	`json:"name"`
-		Surname	 	string	`json:"surname"`
-		Email    	string 	`json:"email"`
-		Password 	string 	`json:"password"`
+		Name     string `json:"name"`
+		Surname  string `json:"surname"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	// Parse the request body into the anonymous struct.
 	err := app.readJSON(w, r, &input)
@@ -29,10 +29,10 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	// Activated field will have the zero-value of false by default. But setting this
 	// explicitly helps to make our intentions clear to anyone reading the code.
 	user := &entity.User{
-		Name:      	input.Name,
-		Email:     	input.Email,
-		Surname: 	input.Surname,
-		Activated: 	false,
+		Name:      input.Name,
+		Email:     input.Email,
+		Surname:   input.Surname,
+		Activated: false,
 	}
 	// Use the Password.Set() method to generate and store the hashed and plaintext
 	// passwords.
@@ -49,7 +49,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	// Insert the user data into the database.
-	err = app.models.Users.Insert(user)
+	err = app.Models.Users.Insert(user)
 	if err != nil {
 		switch {
 		// If we get a ErrDuplicateEmail error, use the v.AddError() method to manually
@@ -65,7 +65,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// token generation to activate account
-	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, entity.ScopeActivation)
+	token, err := app.Models.Tokens.New(user.ID, 3*24*time.Hour, entity.ScopeActivation)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -82,12 +82,12 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 
 		// sending context data to template page
-		err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
+		err = app.Mailer.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			// Importantly, if there is an error sending the email then we use the
 			// app.logger.PrintError() helper to manage it, instead of the
 			// app.serverErrorResponse() helper like before.
-			app.logger.PrintError(err, nil)
+			app.Logger.PrintError(err, nil)
 		}
 	})
 
@@ -100,7 +100,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) activateUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the plaintext activation token from the request body.
 	var input struct {
 		TokenPlaintext string `json:"token"`
@@ -120,7 +120,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	// Retrieve the details of the user associated with the token using the
 	// GetForToken() method (which we will create in a minute). If no matching record
 	// is found, then we let the client know that the token they provided is not valid.
-	user, err := app.models.Users.GetForToken(entity.ScopeActivation, input.TokenPlaintext)
+	user, err := app.Models.Users.GetForToken(entity.ScopeActivation, input.TokenPlaintext)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -135,7 +135,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	user.Activated = true
 	// Save the updated user record in our database, checking for any edit conflicts in
 	// the same way that we did for our movie records.
-	err = app.models.Users.Update(user)
+	err = app.Models.Users.Update(user)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrEditConflict):
@@ -147,7 +147,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 	// If everything went successfully, then we delete all activation tokens for the
 	// user.
-	err = app.models.Tokens.DeleteAllForUser(entity.ScopeActivation, user.ID)
+	err = app.Models.Tokens.DeleteAllForUser(entity.ScopeActivation, user.ID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -159,14 +159,14 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func(app *application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Request){
+func (app *Applicaiton) deleteUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 	fmt.Printf("the id %d", id)
-	err = app.models.Users.Delete(id)
+	err = app.Models.Users.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -182,13 +182,13 @@ func(app *application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (app *application) getUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) getUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 	}
 
-	user, err := app.models.Users.Get(id)
+	user, err := app.Models.Users.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -204,8 +204,8 @@ func (app *application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-// 	users, err := app.models.Users.GetAll()
+// func (app *Applicaiton) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+// 	users, err := app.Models.Users.GetAll()
 // 	if err != nil {
 // 		switch {
 // 		case errors.Is(err, data.ErrRecordNotFound):
@@ -221,7 +221,7 @@ func (app *application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 // 	}
 // }
 
-func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Applicaiton) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name string
 		filters.Filters
@@ -237,8 +237,8 @@ func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	users, err := app.models.Users.GetAll(input.Name, input.Filters)
-	//users, err := app.models.Users.GetAll(input.Name, input.Filters)
+	users, err := app.Models.Users.GetAll(input.Name, input.Filters)
+	//users, err := app.Models.Users.GetAll(input.Name, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -250,18 +250,17 @@ func (app *application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 	fmt.Fprintf(w, "%+v\n", input)
 }
 
+// func (app *Applicaiton) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
 
-// func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
+// }
 
-// } 
-
-func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
+func (app *Applicaiton) editUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
-	user, err := app.models.Users.Get(id)
+	user, err := app.Models.Users.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrRecordNotFound):
@@ -272,17 +271,17 @@ func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var input struct {
-		Name 		*string 			`json:"name"`
-		Surname 	*string 			`json:"surname"`
-		Email 		*string 			`json:"email"`
-		Activated	*bool				`json:"activated"`
+		Name      *string `json:"name"`
+		Surname   *string `json:"surname"`
+		Email     *string `json:"email"`
+		Activated *bool   `json:"activated"`
 	}
 	err = app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	if input.Name != nil{
+	if input.Name != nil {
 		user.Name = *input.Name
 	}
 	if input.Surname != nil {
@@ -291,23 +290,22 @@ func (app *application) editUserInfoHandler(w http.ResponseWriter, r *http.Reque
 	if input.Email != nil {
 		user.Email = *input.Email
 	}
-	if input.Activated != nil{
+	if input.Activated != nil {
 		user.Activated = *input.Activated
 	}
-
 
 	v := validator.New()
 	if entity.ValidateUser(v, user); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	err = app.models.Users.Update(user)
+	err = app.Models.Users.Update(user)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrEditConflict):
-		app.editConflictResponse(w, r)
+			app.editConflictResponse(w, r)
 		default:
-		app.serverErrorResponse(w, r, err)
+			app.serverErrorResponse(w, r, err)
 		}
 		return
 	}
