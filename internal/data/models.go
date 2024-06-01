@@ -16,6 +16,7 @@ type Models struct {
 	Users  r.UserRepository
 	Tokens r.TokenRepository 
 	Games  r.GameRepository
+	Orders r.OrderRepository
 }
 
 func NewModels(db *sql.DB) Models {
@@ -23,5 +24,6 @@ func NewModels(db *sql.DB) Models {
 		Users:  repo.UserModel{DB: db},
 		Tokens: repo.TokenModel{DB: db}, 
 		Games: repo.GameModel{DB: db},
+		Orders: repo.OrderModel{DB: db},
 	}
 }

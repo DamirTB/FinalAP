@@ -27,3 +27,7 @@ type GameRepository interface {
     Get(id int64) (*entity.Game, error)
     Delete(id int64) error
 }
+
+type OrderRepository interface{
+	Insert(game_id int32, user_id int32, order *entity.Order) error
+}

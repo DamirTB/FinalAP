@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"github.com/lib/pq"
 	"errors"
+	_"fmt"
 )
 
 type GameModel struct {
@@ -16,6 +17,7 @@ func (g GameModel) Insert(game *entity.Game) error {
 		INSERT INTO games(name, price, genres)
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at, version`
+
 	return g.DB.QueryRow(query, &game.Name, &game.Price, pq.Array(&game.Genres)).Scan(&game.ID, &game.CreatedAt, &game.Version)
 }
 

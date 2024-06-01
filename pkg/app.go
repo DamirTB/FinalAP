@@ -4,13 +4,14 @@ import (
 	"damir/internal/data"
 	"damir/internal/jsonlog"
 	"damir/internal/mailer"
+	cfn "damir/pkg/config"
 	"flag"
 	"os"
 	"sync"
 )
 
 type Applicaiton struct {
-	Config Config
+	Config cfn.Config
 	Logger *jsonlog.Logger
 	Models data.Models
 	Mailer mailer.Mailer
@@ -19,8 +20,8 @@ type Applicaiton struct {
 
 const version = "1.0.0"
 
-func Setup() Config {
-	var cfg Config
+func Setup() cfn.Config {
+	var cfg cfn.Config
 
 	flag.IntVar(&cfg.Port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.Env, "env", "development", "Environment (development|staging|production)")
@@ -29,7 +30,6 @@ func Setup() Config {
 	flag.IntVar(&cfg.Db.MaxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.Db.MaxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.Db.MaxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max idle time")
-	// flag.StringVar(&cfg.db.maxLifetime, "db-max-lifetime", "1h", "PostgreSQL max idle time")
 
 	flag.Float64Var(&cfg.Limiter.Rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.Limiter.Burst, "limiter-burst", 4, "Rate limiter maximum burst")
@@ -44,9 +44,3 @@ func Setup() Config {
 	return cfg
 }
 
-func run() error{
-
-
-
-	return nil
-}

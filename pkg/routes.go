@@ -14,12 +14,8 @@ func (app *Applicaiton) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/games", app.createGameHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/games/:id", app.showGameHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/games/:id", app.deleteGameHandler)
-	//router.HandlerFunc(http.MethodGet, "/v1/movies", app.requireActivatedUser(app.listMoviesHandler))
-	// router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
-	// router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
-	// router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMovieHandler)
-	// router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
 
+	router.HandlerFunc(http.MethodPost, "/v1/order", app.requireActivatedUser(app.createOrderHandler))
 	// user routes here
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/users", app.requireActivatedUser(app.getAllUserInfoHandler))
