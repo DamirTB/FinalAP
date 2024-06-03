@@ -3,11 +3,11 @@ package pkg
 import (
 	"damir/internal/entity"
 	"errors"
-	_"fmt"
+	_ "fmt"
 	"net/http"
 )
 
-func (app *Applicaiton) createGameHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) createGameHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name   string   `json:"name"`
 		Price  int32    `json:"price"`
@@ -37,7 +37,7 @@ func (app *Applicaiton) createGameHandler(w http.ResponseWriter, r *http.Request
 	// fmt.Fprintf(w, "%+v\n", input) //+v here is adding the field name of a value // https://pkg.go.dev/fmt
 }
 
-func (app *Applicaiton) showGameHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) showGameHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -59,7 +59,7 @@ func (app *Applicaiton) showGameHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (app *Applicaiton) deleteGameHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) deleteGameHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -81,7 +81,7 @@ func (app *Applicaiton) deleteGameHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// func (app *Applicaiton) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+// func (app *Application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 // 	id, err := app.readIDParam(r)
 // 	if err != nil {
 // 		app.notFoundResponse(w, r)

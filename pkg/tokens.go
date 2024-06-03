@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (app *Applicaiton) createAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) createAuthenticationTokenHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

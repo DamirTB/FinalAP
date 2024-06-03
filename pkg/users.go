@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (app *Applicaiton) registerUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Create an anonymous struct to hold the expected data from the request body.
 	var input struct {
 		Name     string `json:"name"`
@@ -32,7 +32,8 @@ func (app *Applicaiton) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		Name:      input.Name,
 		Email:     input.Email,
 		Surname:   input.Surname,
-		Activated: false,
+		Activated: true,
+		Role:	   "user",
 	}
 	// Use the Password.Set() method to generate and store the hashed and plaintext
 	// passwords.
@@ -100,7 +101,7 @@ func (app *Applicaiton) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (app *Applicaiton) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the plaintext activation token from the request body.
 	var input struct {
 		TokenPlaintext string `json:"token"`
@@ -159,7 +160,7 @@ func (app *Applicaiton) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (app *Applicaiton) deleteUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -182,7 +183,7 @@ func (app *Applicaiton) deleteUserInfoHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (app *Applicaiton) getUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) getUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -204,7 +205,7 @@ func (app *Applicaiton) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// func (app *Applicaiton) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+// func (app *Application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 // 	users, err := app.Models.Users.GetAll()
 // 	if err != nil {
 // 		switch {
@@ -221,7 +222,7 @@ func (app *Applicaiton) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 // 	}
 // }
 
-func (app *Applicaiton) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name string
 		filters.Filters
@@ -250,11 +251,11 @@ func (app *Applicaiton) getAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 	fmt.Fprintf(w, "%+v\n", input)
 }
 
-// func (app *Applicaiton) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
+// func (app *Application) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
 
 // }
 
-func (app *Applicaiton) editUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) editUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)

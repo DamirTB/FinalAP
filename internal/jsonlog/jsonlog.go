@@ -64,7 +64,7 @@ func (l *Logger) PrintError(err error, properties map[string]string) {
 }
 func (l *Logger) PrintFatal(err error, properties map[string]string) {
 	l.print(LevelFatal, err.Error(), properties)
-	os.Exit(1) // For entries at the FATAL level, we also terminate the Applicaiton.
+	os.Exit(1) // For entries at the FATAL level, we also terminate the Application.
 }
 
 // Print is an internal method for writing the log entry.

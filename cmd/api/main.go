@@ -20,7 +20,7 @@ func main() {
 	defer db.Close()
 	logger.PrintInfo("database connection pool established", nil)
 
-	app := &cfn.Applicaiton{
+	app := &cfn.Application{
 		Config: cfg,
 		Logger: logger,
 		Models: data.NewModels(db),

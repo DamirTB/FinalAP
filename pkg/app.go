@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type Applicaiton struct {
+type Application struct {
 	Config cfn.Config
 	Logger *jsonlog.Logger
 	Models data.Models
@@ -43,4 +43,3 @@ func Setup() cfn.Config {
 	flag.Parse()
 	return cfg
 }
-

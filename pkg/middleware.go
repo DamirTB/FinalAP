@@ -17,7 +17,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func (app *Applicaiton) recoverPanic(next http.Handler) http.Handler {
+func (app *Application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Create a deferred function (which will always be run in the event of a panic
 		// as Go unwinds the stack).
@@ -42,7 +42,7 @@ func (app *Applicaiton) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (app *Applicaiton) rateLimit(next http.Handler) http.Handler {
+func (app *Application) rateLimit(next http.Handler) http.Handler {
 	// Define a client struct to hold the rate limiter and last seen time for each
 	// client.
 	type client struct {
@@ -102,7 +102,7 @@ func (app *Applicaiton) rateLimit(next http.Handler) http.Handler {
 
 }
 
-func (app *Applicaiton) authenticate(next http.Handler) http.Handler {
+func (app *Application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Add the "Vary: Authorization" header to the response. This indicates to any
 		// caches that the response may vary based on the value of the Authorization
@@ -151,7 +151,7 @@ func (app *Applicaiton) authenticate(next http.Handler) http.Handler {
 	})
 }
 
-func (app *Applicaiton) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
 		if user.IsAnonymous() {
@@ -162,7 +162,7 @@ func (app *Applicaiton) requireAuthenticatedUser(next http.HandlerFunc) http.Han
 	})
 }
 
-func (app *Applicaiton) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
 	// Rather than returning this http.HandlerFunc we assign it to the variable fn.
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
@@ -177,7 +177,7 @@ func (app *Applicaiton) requireActivatedUser(next http.HandlerFunc) http.Handler
 	return app.requireAuthenticatedUser(fn)
 }
 
-func (app *Applicaiton) requireAdminUser(next http.HandlerFunc) http.HandlerFunc {
+func (app *Application) requireAdminUser(next http.HandlerFunc) http.HandlerFunc {
 	fn := app.requireAuthenticatedUser(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
 		// fmt.Printf("the user name is %s\n", user.Name)
