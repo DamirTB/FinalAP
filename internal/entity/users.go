@@ -24,6 +24,7 @@ type User struct {
 	Activated 	bool      	`json:"activated"`
 	Version   	int       	`json:"-"`
 	Role 		string		`json:"role"`
+	Balance 	int32			`json:"balance"`
 }
 
 type Password struct {

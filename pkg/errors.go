@@ -83,3 +83,8 @@ func (app *Application) accessDeniedResponse(w http.ResponseWriter, r *http.Requ
 	message := "You do not have permission to access this resource."
 	app.errorResponse(w, r, http.StatusForbidden, message)
 }
+
+func (app *Application) failedPayment(w http.ResponseWriter, r *http.Request){
+	message := "You don't have enough balance to make purchase"
+	app.errorResponse(w, r, http.StatusPaymentRequired, message)
+}

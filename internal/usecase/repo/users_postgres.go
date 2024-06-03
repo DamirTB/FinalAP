@@ -98,7 +98,7 @@ func (m UserModel) Update(user *entity.User) error {
 func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*entity.User, error) {
 	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
 	query := `
-	SELECT user_info.id, user_info.created_at, user_info.fname, user_info.sname, user_info.email, user_info.password_hash, user_info.user_role, user_info.activated, user_info.version
+	SELECT user_info.id, user_info.created_at, user_info.fname, user_info.sname, user_info.email, user_info.password_hash, user_info.user_role, user_info.balance, user_info.activated, user_info.version
 	FROM user_info
 	INNER JOIN tokens
 	ON user_info.id = tokens.user_id
@@ -119,6 +119,7 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*entity.User,
 		&user.Email,
 		&user.Password.Hash,
 		&user.Role,
+		&user.Balance,
 		&user.Activated,
 		&user.Version,
 	)
@@ -170,6 +171,7 @@ func (m UserModel) Get(id int64) (*entity.User, error) {
 		&user.Email,
 		&passwordHash,
 		&user.Role,
+		&user.Balance,
 		&user.Activated, 
 		&user.Version,
 	)
@@ -221,6 +223,7 @@ func (m UserModel) GetAll(name string, filters filters.Filters) ([]*entity.User,
 			&user.Email,
 			&passwordHash,
 			&user.Role,
+			&user.Balance,
 			&user.Activated, 
 			&user.Version,
 		)
@@ -235,6 +238,6 @@ func (m UserModel) GetAll(name string, filters filters.Filters) ([]*entity.User,
 		return nil, err
 	}
 
-	return users, nil
+return users, nil
 }
 

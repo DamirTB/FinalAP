@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS user_info (
     sname VARCHAR(255),
     email citext UNIQUE NOT NULL,
     password_hash bytea NOT NULL,
-    balance integer default 0,
     user_role VARCHAR(50) DEFAULT 'user',
+    balance INT DEFAULT 10000,
     activated bool NOT NULL,
     version integer NOT NULL DEFAULT 1
 );

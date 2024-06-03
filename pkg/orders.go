@@ -3,7 +3,7 @@ package pkg
 import (
 	"damir/internal/entity"
 	"errors"
-	_ "fmt"
+	_"fmt"
 	"net/http"
 )
 
@@ -31,6 +31,10 @@ func (app *Application) createOrderHandler(w http.ResponseWriter, r *http.Reques
 		UserID: user.ID,
 	}
 
+	if user.Balance < game.Price {
+		app.failedPayment(w, r)
+		return
+	}
 	err = app.Models.Orders.Insert(int32(Order.GameID), int32(Order.UserID), Order)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
