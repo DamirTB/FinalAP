@@ -15,6 +15,7 @@ import (
 	"damir/internal/mailer"
 	"os"
 	"damir/internal/jsonlog"
+	"bytes"
 )
 
 
@@ -117,7 +118,7 @@ func TestGameModelMethods(t *testing.T) {
     }
     updatedGame, err := app.Models.Games.Get(game.ID)
     if err != nil {
-        t.Fatalf("Failed to get movie after update: %s", err)
+        t.Fatalf("Failed to get game after update: %s", err)
     }
     if updatedGame.Name != "World of warcraft Updated" {
         t.Errorf("Updated game name %s does not match expected title 'World of warcraft Updated'", updatedGame.Name)
@@ -127,7 +128,6 @@ func TestGameModelMethods(t *testing.T) {
         t.Fatalf("Failed to delete game: %s", err)
     }
 }
-
 
 func TestUserHandlers(t *testing.T) {
 	db := setupDB(t)
@@ -239,3 +239,65 @@ func TestUserHandlers(t *testing.T) {
 		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
 	}
 }
+
+
+func TestGameHandlers(t *testing.T) {
+	db := setupDB(t)
+	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM games")
+	if err != nil {
+		t.Fatalf("Failed to clear test database: %s", err)
+	}
+
+	app := &pkg.Application{
+		Models: data.NewModels(db),
+	}
+
+	router := httprouter.New()
+
+	router.HandlerFunc(http.MethodPost, "/v1/games", app.CreateGameHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/games/:id", app.ShowGameHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/games/:id", app.UpdateGameHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/games/:id", app.DeleteGameHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/games", app.GetAllGamesHandler)
+	createGamePayload := []byte(`{"name":"Test Game", "price": 100, "genres":["Action", "Adventure"]}`)
+	createGameRequest, _ := http.NewRequest(http.MethodPost, "/v1/games", bytes.NewBuffer(createGamePayload))
+	createGameRequest.Header.Set("Content-Type", "application/json")
+	createGameResponse := httptest.NewRecorder()
+	router.ServeHTTP(createGameResponse, createGameRequest)
+
+	if createGameResponse.Code != http.StatusCreated {
+		t.Errorf("Expected status %d; got %d", http.StatusCreated, createGameResponse.Code)
+	}
+	var createGameResponseData struct {
+		Game entity.Game `json:"game"`
+	}
+	err = json.NewDecoder(createGameResponse.Body).Decode(&createGameResponseData)
+	if err != nil {
+		t.Fatalf("Failed to decode create game response: %v", err)
+	}
+
+	getGameRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/v1/games/%d", createGameResponseData.Game.ID), nil)
+	getGameResponse := httptest.NewRecorder()
+	router.ServeHTTP(getGameResponse, getGameRequest)
+
+	if getGameResponse.Code != http.StatusOK {
+		t.Errorf("Expected status %d; got %d", http.StatusOK, getGameResponse.Code)
+	}
+	deleteGameRequest, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/games/%d", createGameResponseData.Game.ID), nil)
+	deleteGameResponse := httptest.NewRecorder()
+	router.ServeHTTP(deleteGameResponse, deleteGameRequest)
+
+	if deleteGameResponse.Code != http.StatusOK {
+		t.Errorf("Expected status %d; got %d", http.StatusOK, deleteGameResponse.Code)
+	}
+	getAllGamesRequest, _ := http.NewRequest(http.MethodGet, "/v1/games", nil)
+	getAllGamesResponse := httptest.NewRecorder()
+	router.ServeHTTP(getAllGamesResponse, getAllGamesRequest)
+
+	if getAllGamesResponse.Code != http.StatusOK {
+		t.Errorf("Expected status %d; got %d", http.StatusOK, getAllGamesResponse.Code)
+	}
+}
+

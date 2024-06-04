@@ -102,7 +102,7 @@ func TestDeleteGame(t *testing.T) {
 	}
 }
 
-func TestUpdateMovie(t *testing.T) {
+func TestUpdateGame(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("error creating mock database: %s", err)
@@ -124,9 +124,8 @@ func TestUpdateMovie(t *testing.T) {
 
 	err = app.Models.Games.Update(game)
 	if err != nil {
-		t.Errorf("unexpected error updating movie: %s", err)
+		t.Errorf("unexpected error updating game: %s", err)
 	}
-
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}

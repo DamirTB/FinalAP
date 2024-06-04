@@ -117,7 +117,6 @@ func (app *Application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	// Update the user's activation status.
 	user.Activated = true
 	// Save the updated user record in our database, checking for any edit conflicts in
-	// the same way that we did for our movie records.
 	err = app.Models.Users.Update(user)
 	if err != nil {
 		switch {
