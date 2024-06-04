@@ -6,7 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *Application) routes() http.Handler {
+func (app *Application) Routes() http.Handler {
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
@@ -18,7 +18,7 @@ func (app *Application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/games/:id", app.updateGameHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/order", app.requireActivatedUser(app.createOrderHandler))
-	// user routes here
+	// user Routes here
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/users", app.requireActivatedUser(app.getAllUserInfoHandler))
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
