@@ -20,8 +20,8 @@ func (app *Application) CreateGameHandler(w http.ResponseWriter, r *http.Request
   err := app.readJSON(w, r, &input)
   if err != nil {
     app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+    return
   }
-
   game := &entity.Game{
     Name:   input.Name,
     Price:  input.Price,

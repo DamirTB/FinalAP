@@ -301,3 +301,49 @@ func TestGameHandlers(t *testing.T) {
 	}
 }
 
+func TestGameHandlers_Failed(t *testing.T) {
+	db := setupDB(t)
+	if db == nil {
+		t.Fatal("Database connection is nil")
+	}
+	defer db.Close()
+	_, err := db.Exec("DELETE FROM games")
+	if err != nil {
+		t.Fatalf("Failed to clear test database: %s", err)
+	}
+	app := &pkg.Application{
+		Models: data.NewModels(db),
+	}
+	router := httprouter.New()
+	router.HandlerFunc(http.MethodPost, "/v1/games", app.CreateGameHandler)
+	invalidGamePayload := []byte(`{"name":"", "price":"word", "genres":["Action", "Adventure"]}`)
+	req, _ := http.NewRequest(http.MethodPost, "/v1/games", bytes.NewBuffer(invalidGamePayload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d; got %d", http.StatusBadRequest, w.Code)
+	}
+
+	var createErrorResponse struct {
+		ErrorMessage string `json:"error"`
+	}
+	err = json.NewDecoder(w.Body).Decode(&createErrorResponse)
+	if err != nil {
+		t.Fatalf("Failed to decode create game response: %s", err)
+	}
+
+	expectedCreateErrorMessage := `body contains incorrect JSON type for field "price"`
+	if createErrorResponse.ErrorMessage != expectedCreateErrorMessage {
+		t.Errorf("Expected error message '%s'; got '%s'", expectedCreateErrorMessage, createErrorResponse.ErrorMessage)
+	}
+	req, _ = http.NewRequest(http.MethodGet, "/v1/games/999", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("Expected status %d; got %d", http.StatusNotFound, w.Code)
+	}
+}
+
