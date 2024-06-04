@@ -3,6 +3,7 @@ package pkg
 import (
 	"damir/internal/entity"
 	"damir/internal/filters"
+	rabbitmq "damir/internal/sender"
 	"damir/internal/validator"
 	"errors"
 	"fmt"
@@ -17,24 +18,33 @@ func (app *Application) RegisterUserHandler(w http.ResponseWriter, r *http.Reque
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+	// Parse the request body into the anonymous struct.
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	// Copy the data from the request body into a new User struct. Notice also that we
+	// set the Activated field to false, which isn't strictly necessary because the
+	// Activated field will have the zero-value of false by default. But setting this
+	// explicitly helps to make our intentions clear to anyone reading the code.
 	user := &entity.User{
 		Name:      input.Name,
 		Email:     input.Email,
 		Surname:   input.Surname,
 		Activated: true,
-		Role:	   "user",
+		Role:      "user",
 	}
+	// Use the Password.Set() method to generate and store the hashed and plaintext
+	// passwords.
 	err = user.Password.Set(input.Password)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 	v := validator.New()
+	// Validate the user struct and return the error messages to the client if any of
+	// the checks fail.
 	if entity.ValidateUser(v, user); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
@@ -81,6 +91,12 @@ func (app *Application) RegisterUserHandler(w http.ResponseWriter, r *http.Reque
 			app.Logger.PrintError(err, nil)
 		}
 	})
+
+	message := fmt.Sprintf("User registered: %s", user.Email)
+	err = rabbitmq.PublishMessage(message)
+	if err != nil {
+		app.Logger.PrintError(err, nil)
+	}
 
 	// Write a JSON response containing the user data along with a 201 Created status
 	// code.
@@ -171,6 +187,8 @@ func (app *Application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+	message := fmt.Sprintf("User deleted: %d", id)
+	rabbitmq.PublishMessage(message)
 }
 
 func (app *Application) getUserInfoHandler(w http.ResponseWriter, r *http.Request) {
@@ -193,24 +211,9 @@ func (app *Application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+	message := fmt.Sprintf("User info retrived: %s", user.Name)
+	rabbitmq.PublishMessage(message)
 }
-
-// func (app *Application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-// 	users, err := app.Models.Users.GetAll()
-// 	if err != nil {
-// 		switch {
-// 		case errors.Is(err, data.ErrRecordNotFound):
-// 			app.notFoundResponse(w, r)
-// 		default:
-// 			app.serverErrorResponse(w, r, err)
-// 		}
-// 		return
-// 	}
-// 	err = app.writeJSON(w, http.StatusOK, envelope{"users": users}, nil)
-// 	if err != nil {
-// 		app.serverErrorResponse(w, r, err)
-// 	}
-// }
 
 func (app *Application) GetAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
@@ -239,11 +242,9 @@ func (app *Application) GetAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 		app.serverErrorResponse(w, r, err)
 	}
 	fmt.Fprintf(w, "%+v\n", input)
+	message := fmt.Sprintf("All users info retrived: %d", len(users))
+	rabbitmq.PublishMessage(message)
 }
-
-// func (app *Application) editUserInfoHandler(w http.ResponseWriter, r *http.Request){
-
-// }
 
 func (app *Application) editUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
@@ -304,4 +305,6 @@ func (app *Application) editUserInfoHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+	message := fmt.Sprintf("User updated: %d", user.ID)
+	rabbitmq.PublishMessage(message)
 }
