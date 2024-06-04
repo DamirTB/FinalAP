@@ -16,4 +16,3 @@ func (ord OrderModel) Insert(game_id int32, user_id int32, order *entity.Order) 
 		RETURNING id, order_date, version`
 	return ord.DB.QueryRow(query, game_id, user_id).Scan(&order.ID, &order.OrderDate, &order.Version)
 }
-
