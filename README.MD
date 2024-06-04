@@ -15,5 +15,5 @@ http://localhost:4000/v1/users?sort=-id
 
 http://localhost:4000/v1/users?name=Damir
 
-
+something
 ```
