@@ -11,6 +11,7 @@ func (app *Application) routes() http.Handler {
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
+	router.HandlerFunc(http.MethodGet, "/v1/games", app.getAllGamesHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/games", app.createGameHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/games/:id", app.showGameHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/games/:id", app.deleteGameHandler)

@@ -2,8 +2,10 @@ package pkg
 
 import (
 	"damir/internal/entity"
+	"damir/internal/filters"
+	"damir/internal/validator"
 	"errors"
-	_ "fmt"
+	"fmt"
 	"net/http"
 )
 
@@ -81,16 +83,6 @@ func (app *Application) deleteGameHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// func(app *Application) updateGameHandler(w http.ResponseWriter, r *http.Request){
-// 	id, err := app.readIDParam(r)
-// 	if err != nil{ 
-// 		app.notFoundResponse(w, r)
-// 		return
-// 	}
-// 	game, err := app.Models.Games.Get(id)
-// }
-
-
 func (app *Application) updateGameHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
@@ -131,4 +123,33 @@ func (app *Application) updateGameHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *Application) getAllGamesHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name string
+		filters.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Name = app.readString(qs, "name", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
+	if filters.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	games, err := app.Models.Games.GetAll(input.Name, input.Filters)
+	//users, err := app.Models.Users.GetAll(input.Name, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"games": games}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	fmt.Fprintf(w, "%+v\n", input)
 }

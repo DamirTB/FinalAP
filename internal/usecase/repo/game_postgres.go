@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"github.com/lib/pq"
 	"errors"
-	_"fmt"
+	"damir/internal/filters"
+	"context"
+	"time"
+	"fmt"
 )
 
 type GameModel struct {
@@ -86,4 +89,45 @@ func (g GameModel) Update(game *entity.Game) error {
 	}
 
 	return g.DB.QueryRow(query, args...).Scan(&game.Version)
+}
+
+func (g GameModel) GetAll(name string, filters filters.Filters) ([]*entity.Game, error) {
+	query := fmt.Sprintf(`
+	SELECT *
+	FROM games
+	WHERE (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
+	ORDER BY %s %s, id ASC
+	LIMIT $2 OFFSET $3`, filters.SortColumn(), filters.SortDirection())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	args := []any{name, filters.Limit(), filters.Offset()}
+	rows, err := g.DB.QueryContext(ctx, query, args...)	
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var games []*entity.Game
+
+	for rows.Next() {
+		var game entity.Game
+		err := rows.Scan(
+			&game.ID,
+			&game.CreatedAt,
+			&game.Name,
+			&game.Price,
+			pq.Array(&game.Genres),
+			&game.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, &game)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return games, nil
 }

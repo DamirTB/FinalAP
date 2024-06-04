@@ -28,6 +28,7 @@ type GameRepository interface {
     Get(id int64) (*entity.Game, error)
     Delete(id int64) error
 	Update(game *entity.Game) error
+	GetAll(name string, filters filters.Filters) ([]*entity.Game, error)
 }
 
 type OrderRepository interface{
