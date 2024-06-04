@@ -148,7 +148,7 @@ func (app *Application) GetAllGamesHandler(w http.ResponseWriter, r *http.Reques
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name"}
+	input.Filters.SortSafelist = []string{"id", "name", "-id", "-name", "price", "-price"}
 	if filters.ValidateFilters(v, input.Filters); !v.Valid() {
 	  app.failedValidationResponse(w, r, v.Errors)
 	  return
@@ -164,13 +164,10 @@ func (app *Application) GetAllGamesHandler(w http.ResponseWriter, r *http.Reques
 	  app.serverErrorResponse(w, r, err)
 	}
 	fmt.Fprintf(w, "%+v\n", input)
-	// Format the games into a readable string
 	var gameDetails []string
 	for _, game := range games {
 	  gameDetails = append(gameDetails, fmt.Sprintf("{ID: %d, Name: %s, Price: %d, Genres: %v}", game.ID, game.Name, game.Price, game.Genres))
 	}
 	logMessage := fmt.Sprintf("All games retrieved: [%s]", strings.Join(gameDetails, ", "))
-  
-	// Log the formatted message
 	rabbitmq.PublishMessage(logMessage)
   }

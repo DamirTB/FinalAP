@@ -40,7 +40,7 @@ func (app *Application) createOrderHandler(w http.ResponseWriter, r *http.Reques
     app.serverErrorResponse(w, r, err)
     return
   }
-  err = app.Models.Orders.Insert(int32(Order.GameID), int32(Order.UserID), Order)
+  err = app.Models.Orders.Insert(int32(Order.UserID), int32(Order.GameID), Order)
   if err != nil {
     app.serverErrorResponse(w, r, err)
     return
@@ -70,4 +70,28 @@ func (app *Application) getAllOrdersHandler(w http.ResponseWriter, r *http.Reque
     if err != nil {
         app.serverErrorResponse(w, r, err)
     }
+}
+
+func (app *Application) refundOrderHandler(w http.ResponseWriter, r *http.Request) {
+  var input struct {
+    Order_id int64 `json:"order_id"`
+  }
+  err := app.readJSON(w, r, &input)
+  if err != nil {
+    app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+  }
+  order, err := app.Models.Orders.Get(input.Order_id)
+  if err != nil {
+    switch {
+    case errors.Is(err, entity.ErrRecordNotFound):
+      app.notFoundResponse(w, r)
+    default:
+      app.serverErrorResponse(w, r, err)
+    }
+    return
+  }
+  user := app.contextGetUser(r)
+  if order.UserID != user.ID{
+
+  }
 }

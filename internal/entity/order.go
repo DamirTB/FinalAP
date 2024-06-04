@@ -9,6 +9,6 @@ type Order struct {
 	UserID    int64     `json:"user_id"`
 	GameID    int64     `json:"game_id"`
 	OrderDate time.Time `json:"order_date"`
-	Status    string    `json:"-"`
+	Status    string    `json:"status"`
 	Version   int32     `json:"version"`
 }

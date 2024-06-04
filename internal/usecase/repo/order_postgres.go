@@ -3,6 +3,7 @@ package repo
 import (
 	"damir/internal/entity"
 	"database/sql"
+    "errors"
 )
 
 type OrderModel struct {
@@ -43,4 +44,45 @@ func (ord OrderModel) GetAll(user_id int32) ([]entity.Order, error) {
         return nil, err
     }
     return orders, nil
+}
+
+func (ord OrderModel) Update(order *entity.Order) error {
+	query := `
+		UPDATE orders
+		SET status='Refunded'
+		WHERE id = $1
+		RETURNING version`
+
+	args := []interface{}{
+		order.ID,
+	}
+	return ord.DB.QueryRow(query, args...).Scan(&order.Version)
+}
+
+func (ord OrderModel) Get(id int64) (*entity.Order, error) {
+	if id < 1 {
+		return nil, entity.ErrRecordNotFound
+	}
+	query := `
+		SELECT id, user_id, game_id, order_date, status, version
+		FROM orders
+		WHERE id = $1`
+	var order entity.Order
+	err := ord.DB.QueryRow(query, id).Scan(
+		&order.ID,
+		&order.UserID,
+		&order.GameID,
+		&order.OrderDate,
+		&order.Status,
+		&order.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, entity.ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &order, nil
 }
