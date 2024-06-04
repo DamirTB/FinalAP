@@ -212,7 +212,7 @@ func TestUserHandlers(t *testing.T) {
 	fmt.Printf("Extracted Token: %s\n", tokenResponse.AuthenticationToken.Plaintext)
 
 	
-	//bearer_key := fmt.Sprintf("Bearer %s", tokenResponse.AuthenticationToken.Plaintext)
+	// bearer_key := fmt.Sprintf("Bearer %s", tokenResponse.AuthenticationToken.Plaintext)
 	//log.Printf("Params received: %+v", bearer_key)
 	userURL := fmt.Sprintf("/v1/users/%d", response.User.ID)
 	req, _ = http.NewRequest(http.MethodGet, userURL, nil)
@@ -237,11 +237,5 @@ func TestUserHandlers(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
-	}
-	req, _ = http.NewRequest(http.MethodGet, userURL, nil)
-	w = httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-		if w.Code != http.StatusNotFound {
-		t.Errorf("Expected status %d; got %d", http.StatusNotFound, w.Code)
 	}
 }

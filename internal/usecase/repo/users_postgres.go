@@ -18,82 +18,76 @@ type UserModel struct {
 }
 
 func (m UserModel) Insert(user *entity.User) error {
-	query := `
-	INSERT INTO user_info (fname, sname, email, password_hash, activated)
-	VALUES ($1, $2, $3, $4, $5)
-	RETURNING id, created_at, version`
-	args := []any{user.Name, user.Surname, user.Email, user.Password.Hash, user.Activated}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
-	if err != nil {
-		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
-			return entity.ErrDuplicateEmail
-		default:
-			return err
-		}
-	}
-	return nil
+    query := `
+    INSERT INTO user_info (fname, sname, email, password_hash, activated)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, created_at, version`
+    args := []interface{}{user.Name, user.Surname, user.Email, user.Password.Hash, user.Activated}
+    ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+    defer cancel()
+    err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return entity.ErrRecordNotFound
+        }
+        return err
+    }
+    return nil
 }
+
 
 func (m UserModel) GetByEmail(email string) (*entity.User, error) {
-	query := `
-	SELECT id, created_at, fname, email, password_hash, activated, version
-	FROM user_info
-	WHERE email = $1`
-	var user entity.User
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	err := m.DB.QueryRowContext(ctx, query, email).Scan(
-		&user.ID,
-		&user.CreatedAt,
-		&user.Name,
-		&user.Email,
-		&user.Password.Hash,
-		&user.Activated,
-		&user.Version,
-	)
-	if err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return nil, entity.ErrRecordNotFound
-		default:
-			return nil, err
-		}
-	}
-	return &user, nil
+    query := `
+    SELECT id, created_at, fname, email, password_hash, activated, version
+    FROM user_info
+    WHERE email = $1`
+    var user entity.User
+    ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+    defer cancel()
+    err := m.DB.QueryRowContext(ctx, query, email).Scan(
+        &user.ID,
+        &user.CreatedAt,
+        &user.Name,
+        &user.Email,
+        &user.Password.Hash,
+        &user.Activated,
+        &user.Version,
+    )
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, entity.ErrRecordNotFound
+        }
+        return nil, err
+    }
+    return &user, nil
 }
+
 
 func (m UserModel) Update(user *entity.User) error {
-	query := `
-	UPDATE user_info
-	SET fname = $1, sname=$2, email = $3, activated = $4, version = version + 1
-	WHERE id = $5 
-	RETURNING version`
-	args := []any{
-		user.Name,
-		user.Surname,
-		user.Email,
-		user.Activated,
-		user.ID,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
-	if err != nil {
-		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
-			return entity.ErrDuplicateEmail
-
-		case errors.Is(err, sql.ErrNoRows):
-			return entity.ErrEditConflict
-		default:
-			return err
-		}
-	}
-	return nil
+    query := `
+    UPDATE user_info
+    SET fname = $1, sname=$2, email = $3, activated = $4, version = version + 1
+    WHERE id = $5 
+    RETURNING version`
+    args := []interface{}{
+        user.Name,
+        user.Surname,
+        user.Email,
+        user.Activated,
+        user.ID,
+    }
+    ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+    defer cancel()
+    err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return entity.ErrRecordNotFound
+        }
+        return err
+    }
+    return nil
 }
+
 
 func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*entity.User, error) {
 	tokenHash := sha256.Sum256([]byte(tokenPlaintext))

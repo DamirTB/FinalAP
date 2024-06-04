@@ -1,60 +1,54 @@
-package rabbitmq
+package sender
 
 import (
-  "github.com/streadway/amqp"
+    "github.com/streadway/amqp"
+    "errors"
 )
 
-var conn *amqp.Connection
 var channel *amqp.Channel
 
+// InitRabbitMQ initializes the RabbitMQ channel
 func InitRabbitMQ() error {
-  var err error
-  conn, err = amqp.Dial("amqp://guest:guest@localhost:5672/")
-  if err != nil {
-    return err
-  }
+    conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+    if err != nil {
+        return err
+    }
 
-  channel, err = conn.Channel()
-  if err != nil {
-    return err
-  }
+    ch, err := conn.Channel()
+    if err != nil {
+        return err
+    }
 
-  _, err = channel.QueueDeclare(
-    "api_requests",
-    true,
-    false,
-    false,
-    false,
-    nil,
-  )
-  if err != nil {
-    return err
-  }
-  return nil
+    channel = ch
+
+    return nil
 }
 
+// PublishMessage publishes a message to RabbitMQ
 func PublishMessage(message string) error {
-  err := channel.Publish(
-    "",
-    "api_requests",
-    false,
-    false,
-    amqp.Publishing{
-      ContentType: "text/plain",
-      Body:        []byte(message),
-    },
-  )
-  if err != nil {
-    return err
-  }
-  return nil
+    if channel == nil {
+        return errors.New("RabbitMQ channel not initialized")
+    }
+
+    err := channel.Publish(
+        "",
+        "api_requests",
+        false,
+        false,
+        amqp.Publishing{
+            ContentType: "text/plain",
+            Body:        []byte(message),
+        },
+    )
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
+// CloseRabbitMQ closes the RabbitMQ channel
 func CloseRabbitMQ() {
-  if conn != nil {
-    conn.Close()
-  }
-  if channel != nil {
-    channel.Close()
-  }
+    if channel != nil {
+        channel.Close()
+    }
 }
