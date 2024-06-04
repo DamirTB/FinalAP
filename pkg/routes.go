@@ -19,6 +19,7 @@ func (app *Application) Routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/order", app.requireActivatedUser(app.createOrderHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/orders", app.requireActivatedUser(app.getAllOrdersHandler))
+	router.HandlerFunc(http.MethodPut, "/v1/orders", app.requireActivatedUser(app.refundOrderHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.RegisterUserHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/users", app.GetAllUserInfoHandler)

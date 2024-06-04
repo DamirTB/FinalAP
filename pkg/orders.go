@@ -92,6 +92,36 @@ func (app *Application) refundOrderHandler(w http.ResponseWriter, r *http.Reques
   }
   user := app.contextGetUser(r)
   if order.UserID != user.ID{
-
+    app.authenticationRequiredResponse(w, r)
+    return
+  }
+  if order.Status == "Refunded"{
+    app.badRequestResponse(w, r, nil)
+    return
+  }
+  game, err := app.Models.Games.Get(order.GameID)
+  if err != nil {
+    switch {
+    case errors.Is(err, entity.ErrRecordNotFound):
+      app.notFoundResponse(w, r)
+    default:
+      app.serverErrorResponse(w, r, err)
+    }
+    return
+  }
+  err = app.Models.Users.PayBalance(game.Price * -1, user)
+  if err != nil {
+    app.serverErrorResponse(w, r, err)
+    return
+  } 
+  order.Status = "Refunded"
+  err = app.Models.Orders.Update(order)
+  if err != nil {
+    app.serverErrorResponse(w, r, err)
+    return
+  }
+  err = app.writeJSON(w, http.StatusOK, envelope{"order": order}, nil)
+  if err != nil {
+    app.serverErrorResponse(w, r, err)
   }
 }
