@@ -1,8 +1,9 @@
-package pkg
+package tests
 
 import (
 	"damir/internal/data"
 	"damir/internal/entity"
+	"damir/pkg"
 	_ "fmt"
 	_"net/http"
 	_"net/http/httptest"
@@ -20,7 +21,7 @@ func TestInsertGame(t *testing.T) {
 		t.Fatalf("error creating mock database: %s", err)
 	}
 	defer db.Close()
-	app := &Application{
+	app := &pkg.Application{
 		Models: data.NewModels(db),
     }
 	game := &entity.Game{
@@ -49,7 +50,7 @@ func TestGetGame(t *testing.T) {
 	}
 	defer db.Close()
 
-	app := &Application{
+	app := &pkg.Application{
 		Models: data.NewModels(db),
 	}
 
@@ -77,7 +78,7 @@ func TestDeleteGame(t *testing.T) {
 	}
 	defer db.Close()
 
-	app := &Application{
+	app := &pkg.Application{
 		Models: data.NewModels(db),
 	}
 
@@ -95,4 +96,33 @@ func TestDeleteGame(t *testing.T) {
 	}
 }
 
+func TestUpdateMovie(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("error creating mock database: %s", err)
+	}
+	defer db.Close()
+	app := &pkg.Application{
+		Models: data.NewModels(db),
+	}
+	game := &entity.Game{
+		ID:      1,
+		Name:   "Updated Warcraft",
+		Price:   1500,
+		Genres:  []string{"Adventure", "Horror"},
+	}
+
+	mock.ExpectQuery(`UPDATE games SET`).
+		WithArgs(game.Name, game.Price, pq.Array(game.Genres), game.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(2))
+
+	err = app.Models.Games.Update(game)
+	if err != nil {
+		t.Errorf("unexpected error updating movie: %s", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
 
