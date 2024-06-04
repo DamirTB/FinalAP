@@ -30,9 +30,13 @@ func (app *Application) createOrderHandler(w http.ResponseWriter, r *http.Reques
 		GameID: input.Game_id,
 		UserID: user.ID,
 	}
-
 	if user.Balance < game.Price {
 		app.failedPayment(w, r)
+		return
+	}
+	err = app.Models.Users.PayBalance(game.Price, user)
+	if err != nil{
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 	err = app.Models.Orders.Insert(int32(Order.GameID), int32(Order.UserID), Order)
@@ -40,9 +44,9 @@ func (app *Application) createOrderHandler(w http.ResponseWriter, r *http.Reques
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
 	err = app.writeJSON(w, http.StatusCreated, envelope{"game": game, "order": Order}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
+

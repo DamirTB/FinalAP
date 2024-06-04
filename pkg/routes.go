@@ -14,6 +14,7 @@ func (app *Application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/games", app.createGameHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/games/:id", app.showGameHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/games/:id", app.deleteGameHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/games/:id", app.updateGameHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/order", app.requireActivatedUser(app.createOrderHandler))
 	// user routes here

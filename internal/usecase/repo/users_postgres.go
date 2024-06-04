@@ -238,6 +238,19 @@ func (m UserModel) GetAll(name string, filters filters.Filters) ([]*entity.User,
 		return nil, err
 	}
 
-return users, nil
+	return users, nil
 }
 
+func (m UserModel) PayBalance(price int32, user *entity.User) error {
+	query := `
+		UPDATE user_info
+		SET balance = balance - $1
+		WHERE id = $2
+		RETURNING version`
+
+	args := []interface{}{
+		price,
+		user.ID,
+	}
+	return m.DB.QueryRow(query, args...).Scan(&user.Version)
+}
