@@ -126,3 +126,70 @@ func TestUpdateMovie(t *testing.T) {
 	}
 }
 
+
+func TestInsertUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("error creating mock database: %s", err)
+	}
+	defer db.Close()
+	app := &pkg.Application{
+		Models: data.NewModels(db),
+	}
+	password := "password123"
+
+	user := &entity.User{
+		Name:      "John",
+		Surname:   "Doe",
+		Email:     "john.doe@example.com",
+		Activated: true,
+	}
+    err = user.Password.Set(password)
+    if err != nil {
+        t.Fatalf("error hashing password: %s", err)
+    }
+	mock.ExpectQuery(`INSERT INTO user_info`).
+		WithArgs(user.Name, user.Surname, user.Email, user.Password.Hash, user.Activated).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "version"}).AddRow(1, time.Now(), 1))
+
+	err = app.Models.Users.Insert(user)
+	if err != nil {
+		t.Errorf("unexpected error inserting user: %s", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestUpdateUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("error creating mock database: %s", err)
+	}
+	defer db.Close()
+	app := &pkg.Application{
+		Models: data.NewModels(db),
+	}
+
+	user := &entity.User{
+		ID:        1,
+		Name:      "Jane",
+		Surname:   "Doe",
+		Email:     "jane.doe@example.com",
+		Activated: true,
+	}
+
+	mock.ExpectQuery(`UPDATE user_info SET`).
+		WithArgs(user.Name, user.Surname, user.Email, user.Activated, user.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).AddRow(2))
+
+	err = app.Models.Users.Update(user)
+	if err != nil {
+		t.Errorf("unexpected error updating user: %s", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
