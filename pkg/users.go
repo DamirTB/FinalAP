@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (app *Application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name     string `json:"name"`
 		Surname  string `json:"surname"`
@@ -212,7 +212,7 @@ func (app *Application) getUserInfoHandler(w http.ResponseWriter, r *http.Reques
 // 	}
 // }
 
-func (app *Application) getAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) GetAllUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name string
 		filters.Filters

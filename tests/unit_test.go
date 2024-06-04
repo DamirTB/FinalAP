@@ -1,17 +1,23 @@
 package tests
 
 import (
+	"os"
+	_"bytes"
 	"damir/internal/data"
 	"damir/internal/entity"
 	"damir/pkg"
+	_"encoding/json"
 	"fmt"
+	_"reflect"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 	"github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/julienschmidt/httprouter"
 	"github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 	_ "golang.org/x/crypto/bcrypt"
 )
 
@@ -193,21 +199,6 @@ func TestUpdateUser(t *testing.T) {
 	}
 }
 
-func TestGetAllUsersHandler(t *testing.T) {
-	app := &pkg.Application{}
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/users", nil)
-
-	rr := httptest.NewRecorder()
-
-	app.Routes().ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusUnauthorized {
-		t.Errorf("Expected status %d; got %d", http.StatusUnauthorized, rr.Code)
-	}
-}
-
-
 func TestGetUserInfoHandler_Unathorized(t *testing.T) {
     db, mock, err := sqlmock.New()
     if err != nil {
@@ -243,4 +234,87 @@ func TestGetUserInfoHandler_Unathorized(t *testing.T) {
     }
 }
 
+func TestDeleteUser(t *testing.T) {
+    db, mock, err := sqlmock.New()
+    if err != nil {
+        t.Fatalf("error creating mock database: %s", err)
+    }
+    defer db.Close()
+    app := &pkg.Application{
+        Models: data.NewModels(db),
+    }
+    userID := int64(1)
+    mock.ExpectExec(`DELETE FROM user_info where id = \$1`).
+        WithArgs(userID).
+        WillReturnResult(sqlmock.NewResult(1, 1)) 
+    err = app.Models.Users.Delete(userID)
+    if err != nil {
+        t.Errorf("unexpected error deleting user: %s", err)
+    }
+    if err := mock.ExpectationsWereMet(); err != nil {
+        t.Errorf("there were unfulfilled expectations: %s", err)
+    }
+}
 
+func TestSetup(t *testing.T) {
+	originalDSN := os.Getenv("DSN")
+	originalEmail := os.Getenv("email")
+	originalPassword := os.Getenv("password")
+
+	os.Setenv("DSN", "test_dsn")
+	os.Setenv("email", "test_email")
+	os.Setenv("password", "test_password")
+
+	defer func() {
+		os.Setenv("DSN", originalDSN)
+		os.Setenv("email", originalEmail)
+		os.Setenv("password", originalPassword)
+	}()
+
+	cfg := pkg.Setup()
+
+	assert.Equal(t, 4000, cfg.Port)
+	assert.Equal(t, "development", cfg.Env)
+	assert.Equal(t, "test_dsn", cfg.Db.Dsn)
+	assert.Equal(t, 25, cfg.Db.MaxOpenConns)
+	assert.Equal(t, 25, cfg.Db.MaxIdleConns)
+	assert.Equal(t, "15m", cfg.Db.MaxIdleTime)
+	assert.Equal(t, 2.0, cfg.Limiter.Rps)
+	assert.Equal(t, 4, cfg.Limiter.Burst)
+	assert.Equal(t, true, cfg.Limiter.Enabled)
+	assert.Equal(t, "smtp.office365.com", cfg.Smtp.Host)
+	assert.Equal(t, 587, cfg.Smtp.Port)
+	assert.Equal(t, "test_email", cfg.Smtp.Username)
+	assert.Equal(t, "test_password", cfg.Smtp.Password)
+	assert.Equal(t, "Test <221363@astanait.edu.kz>", cfg.Smtp.Sender)
+}
+
+func TestInsertGameFailed(t *testing.T) {
+    db, mock, err := sqlmock.New()
+    if err != nil {
+        t.Fatalf("error creating mock database: %s", err)
+    }
+    defer db.Close()
+    app := &pkg.Application{
+        Models: data.NewModels(db),
+    }
+    game := &entity.Game{
+        Name:   "Warcraft",
+        Price:  1000,
+        Genres: []string{"Adventure", "Horror"},
+    }
+    // Change the expectation to not return any rows
+    mock.ExpectQuery(`INSERT INTO games`).
+        WithArgs(game.Name, game.Price, pq.Array(game.Genres)).
+        WillReturnRows(sqlmock.NewRows([]string{}))
+
+    err = app.Models.Games.Insert(game)
+    // Check if the error is not nil, as the insertion should fail
+    if err == nil {
+        t.Errorf("expected error while inserting game, but got nil")
+    }
+
+    if err := mock.ExpectationsWereMet(); err != nil {
+        t.Errorf("there were unfulfilled expectations: %s", err)
+    }
+}

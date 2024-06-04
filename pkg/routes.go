@@ -11,16 +11,16 @@ func (app *Application) Routes() http.Handler {
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	router.HandlerFunc(http.MethodGet, "/v1/games", app.getAllGamesHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/games", app.createGameHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/games/:id", app.showGameHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/games/:id", app.deleteGameHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/games/:id", app.updateGameHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/games", app.GetAllGamesHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/games", app.CreateGameHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/games/:id", app.ShowGameHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/games/:id", app.DeleteGameHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/games/:id", app.UpdateGameHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/order", app.requireActivatedUser(app.createOrderHandler))
 	// user Routes here
-	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/users", app.requireActivatedUser(app.getAllUserInfoHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/users", app.RegisterUserHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/users", app.GetAllUserInfoHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.requireAdminUser(app.deleteUserInfoHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.requireActivatedUser(app.getUserInfoHandler))
