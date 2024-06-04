@@ -32,5 +32,6 @@ type GameRepository interface {
 }
 
 type OrderRepository interface{
+	GetAll(user_id int32) ([]entity.Order, error)
 	Insert(game_id int32, user_id int32, order *entity.Order) error
 }

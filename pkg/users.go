@@ -166,7 +166,7 @@ func (app *Application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (app *Application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) DeleteUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -191,7 +191,7 @@ func (app *Application) deleteUserInfoHandler(w http.ResponseWriter, r *http.Req
 	rabbitmq.PublishMessage(message)
 }
 
-func (app *Application) getUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -246,7 +246,7 @@ func (app *Application) GetAllUserInfoHandler(w http.ResponseWriter, r *http.Req
 	rabbitmq.PublishMessage(message)
 }
 
-func (app *Application) editUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) EditUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)

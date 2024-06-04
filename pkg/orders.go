@@ -52,3 +52,22 @@ func (app *Application) createOrderHandler(w http.ResponseWriter, r *http.Reques
   message := fmt.Sprintf("Order created: GameID=%d, UserID=%d", Order.GameID, Order.UserID)
   rabbitmq.PublishMessage(message)
 }
+
+func (app *Application) getAllOrdersHandler(w http.ResponseWriter, r *http.Request) {
+    user := app.contextGetUser(r)
+    if user == nil {
+        app.errorResponse(w, r, http.StatusUnauthorized, "user not authenticated")
+        return
+    }
+
+    orders, err := app.Models.Orders.GetAll(int32(user.ID))
+    if err != nil {
+        app.serverErrorResponse(w, r, err)
+        return
+    }
+
+    err = app.writeJSON(w, http.StatusOK, orders, nil)
+    if err != nil {
+        app.serverErrorResponse(w, r, err)
+    }
+}

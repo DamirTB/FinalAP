@@ -6,14 +6,15 @@ import (
 	"damir/internal/entity"
 	"damir/internal/data"
 	"damir/pkg"
-	_"github.com/julienschmidt/httprouter"
-	_"net/http"
-	_"strings"
-	_"net/http/httptest"
-	_"fmt"
-	_"encoding/json"
-	_"damir/internal/mailer"
-	_"os"
+	"github.com/julienschmidt/httprouter"
+	"net/http"
+	"strings"
+	"net/http/httptest"
+	"fmt"
+	"encoding/json"
+	"damir/internal/mailer"
+	"os"
+	"damir/internal/jsonlog"
 )
 
 
@@ -128,119 +129,119 @@ func TestGameModelMethods(t *testing.T) {
 }
 
 
-// func TestUserHandlers(t *testing.T) {
-// 	db := setupDB(t)
-// 	if db == nil {
-// 		t.Fatal("Database connection is nil")
-// 	}
-// 	defer db.Close()
+func TestUserHandlers(t *testing.T) {
+	db := setupDB(t)
+	if db == nil {
+		t.Fatal("Database connection is nil")
+	}
+	defer db.Close()
 
-// 	// smtpConfig := smtp{
-// 	// 	host: "smtp.office365.com",
-// 	// 	port: 587, 
-// 	// 	username: os.Getenv("email"),
-// 	// 	password: os.Getenv("password"),
-// 	// 	sender: "Test <221363@astanait.edu.kz>",
-// 	// }
+	// smtpConfig := smtp{
+	// 	host: "smtp.office365.com",
+	// 	port: 587, 
+	// 	username: os.Getenv("email"),
+	// 	password: os.Getenv("password"),
+	// 	sender: "Test <221363@astanait.edu.kz>",
+	// }
 
-// 	// appConfig := config{
-// 	// 	smtp: smtpConfig,
-// 	// }
+	// appConfig := config{
+	// 	smtp: smtpConfig,
+	// }
+	app := &pkg.Application{
+		Models: data.NewModels(db),
+		Mailer: mailer.New("smtp.office365.com", 587, "221363@astanait.edu.kz", "HAdCVB6quqmU3", "Test <221363@astanait.edu.kz>"),
+		Logger: jsonlog.New(os.Stdout, jsonlog.LevelInfo),
+	}
 
-// 	app := &pkg.Application{
-// 		Models: data.NewModels(db),
-// 		Mailer: mailer.New("smtp.office365.com", 587, os.Getenv("email"), os.Getenv("password"), "Test <221363@astanait.edu.kz>"),
-// 	}
+	_, err := db.Exec(`DELETE FROM user_info `)
+	if err != nil {
+		t.Fatalf("Failed to clear test database: %s", err)
+	}
 
-// 	_, err := db.Exec(`DELETE FROM user_info `)
-// 	if err != nil {
-// 		t.Fatalf("Failed to clear test database: %s", err)
-// 	}
+	router := httprouter.New()
+	router.HandlerFunc(http.MethodPost, "/v1/users", app.RegisterUserHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.CreateAuthenticationTokenHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.GetUserInfoHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.EditUserInfoHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.DeleteUserInfoHandler)
 
-// 	router := httprouter.New()
-// 	router.HandlerFunc(http.MethodPost, "/v1/users", app.RegisterUserHandler)
-// 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.CreateAuthenticationTokenHandler)
-// 	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.getUserInfoHandler)
-// 	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.editUserInfoHandler)
-// 	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.deleteUserInfoHandler)
+	body := strings.NewReader(`{"name":"John","surname":"Doe","email":"john.doe@example.com","password":"password123"}`)
+	req, _ := http.NewRequest(http.MethodPost, "/v1/users", body)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-// 	body := strings.NewReader(`{"name":"John","surname":"Doe","email":"john.doe@example.com","password":"password123"}`)
-// 	req, _ := http.NewRequest(http.MethodPost, "/v1/users", body)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
+	if w.Code != http.StatusAccepted {
+		t.Errorf("Expected status %d; got %d", http.StatusAccepted, w.Code)
+	}
 
-// 	if w.Code != http.StatusAccepted {
-// 		t.Errorf("Expected status %d; got %d", http.StatusAccepted, w.Code)
-// 	}
+	var response struct {
+		User struct {
+			ID int64 `json:"id"`
+		} `json:"user"`
+	}
+	err = json.NewDecoder(w.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if response.User.ID == 0 {
+		t.Errorf("Expected a valid user ID; got %d", response.User.ID)
+	}
+	body = strings.NewReader(`{"email":"john.doe@example.com","password":"password123"}`)
+	req, _ = http.NewRequest(http.MethodPost, "/v1/tokens/authentication", body)
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status %d; got %d", http.StatusCreated, w.Code)
+	}
+	var tokenResponse struct {
+		AuthenticationToken struct {
+			Plaintext string `json:"Plaintext"`
+		} `json:"authentication_token"`
+	}
+	err = json.NewDecoder(w.Body).Decode(&tokenResponse)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
 
-// 	var response struct {
-// 		User struct {
-// 			ID int64 `json:"id"`
-// 		} `json:"user"`
-// 	}
-// 	err = json.NewDecoder(w.Body).Decode(&response)
-// 	if err != nil {
-// 		t.Fatalf("Failed to decode response: %v", err)
-// 	}
-// 	if response.User.ID == 0 {
-// 		t.Errorf("Expected a valid user ID; got %d", response.User.ID)
-// 	}
-// 	body = strings.NewReader(`{"email":"john.doe@example.com","password":"password123"}`)
-// 	req, _ = http.NewRequest(http.MethodPost, "/v1/tokens/authentication", body)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
-// 	if w.Code != http.StatusCreated {
-// 		t.Errorf("Expected status %d; got %d", http.StatusCreated, w.Code)
-// 	}
-// 	var tokenResponse struct {
-// 		AuthenticationToken struct {
-// 			Plaintext string `json:"Plaintext"`
-// 		} `json:"authentication_token"`
-// 	}
-// 	err = json.NewDecoder(w.Body).Decode(&tokenResponse)
-// 	if err != nil {
-// 		t.Fatalf("Failed to decode response: %v", err)
-// 	}
+	if tokenResponse.AuthenticationToken.Plaintext == "" {
+		t.Errorf("Expected a valid token; got an empty string")
+	}
 
-// 	if tokenResponse.AuthenticationToken.Plaintext == "" {
-// 		t.Errorf("Expected a valid token; got an empty string")
-// 	}
-
-// 	fmt.Printf("Extracted Token: %s\n", tokenResponse.AuthenticationToken.Plaintext)
+	fmt.Printf("Extracted Token: %s\n", tokenResponse.AuthenticationToken.Plaintext)
 
 	
-// 	//bearer_key := fmt.Sprintf("Bearer %s", tokenResponse.AuthenticationToken.Plaintext)
-// 	//log.Printf("Params received: %+v", bearer_key)
-// 	userURL := fmt.Sprintf("/v1/users/%d", response.User.ID)
-// 	req, _ = http.NewRequest(http.MethodGet, userURL, nil)
-// 	//req.Header.Set("Authorization", bearer_key)
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
-// 	}
-// 	updateBody := strings.NewReader(`{"name":"John","surname":"Doe","email":"john.doe@example.com","password":"password123"}`)
-// 	req, _ = http.NewRequest(http.MethodPatch, userURL, updateBody)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
+	//bearer_key := fmt.Sprintf("Bearer %s", tokenResponse.AuthenticationToken.Plaintext)
+	//log.Printf("Params received: %+v", bearer_key)
+	userURL := fmt.Sprintf("/v1/users/%d", response.User.ID)
+	req, _ = http.NewRequest(http.MethodGet, userURL, nil)
+	//req.Header.Set("Authorization", bearer_key)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
+	}
+	updateBody := strings.NewReader(`{"name":"John","surname":"Doe","email":"john.doe@example.com","password":"password123"}`)
+	req, _ = http.NewRequest(http.MethodPatch, userURL, updateBody)
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
-// 	}
-// 	req, _ = http.NewRequest(http.MethodDelete, userURL, nil)
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
+	}
+	req, _ = http.NewRequest(http.MethodDelete, userURL, nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
-// 	}
-// 	req, _ = http.NewRequest(http.MethodGet, userURL, nil)
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
-// 		if w.Code != http.StatusNotFound {
-// 		t.Errorf("Expected status %d; got %d", http.StatusNotFound, w.Code)
-// 	}
-// }
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d; got %d", http.StatusOK, w.Code)
+	}
+	req, _ = http.NewRequest(http.MethodGet, userURL, nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+		if w.Code != http.StatusNotFound {
+		t.Errorf("Expected status %d; got %d", http.StatusNotFound, w.Code)
+	}
+}
