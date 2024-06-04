@@ -303,13 +303,11 @@ func TestInsertGameFailed(t *testing.T) {
         Price:  1000,
         Genres: []string{"Adventure", "Horror"},
     }
-    // Change the expectation to not return any rows
     mock.ExpectQuery(`INSERT INTO games`).
         WithArgs(game.Name, game.Price, pq.Array(game.Genres)).
         WillReturnRows(sqlmock.NewRows([]string{}))
 
     err = app.Models.Games.Insert(game)
-    // Check if the error is not nil, as the insertion should fail
     if err == nil {
         t.Errorf("expected error while inserting game, but got nil")
     }
